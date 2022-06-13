@@ -184,6 +184,9 @@ void TebLocalPlannerROS::initialize(std::string name, tf2_ros::Buffer* tf, costm
     nh_move_base.param("controller_frequency", controller_frequency, controller_frequency);
     failure_detector_.setBufferLength(std::round(cfg_.recovery.oscillation_filter_duration*controller_frequency));
     
+    ros::NodeHandle nh_global;
+    controller_period_pub_ = nh_global.advertise<std_msgs::Float64>("controller_period", 1);
+
     // set initialized flag
     initialized_ = true;
 
@@ -222,11 +225,28 @@ bool TebLocalPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& 
 
 bool TebLocalPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 {
+  // for calculate time cost
+  struct timespec tt1;
+  clock_gettime(CLOCK_REALTIME, &tt1);
+
   std::string dummy_message;
   geometry_msgs::PoseStamped dummy_pose;
   geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
   uint32_t outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
   cmd_vel = cmd_vel_stamped.twist;
+
+  // get time now for calculate controller period
+  struct timespec tt2;
+  clock_gettime(CLOCK_REALTIME, &tt2);
+
+  // calculate time period
+  double period = (tt2.tv_sec - tt1.tv_sec) + (tt2.tv_nsec - tt1.tv_nsec)/1.0e9;
+
+  // publish controller period
+  std_msgs::Float64 dt;
+  dt.data = period;
+  controller_period_pub_.publish(dt);
+
   return outcome == mbf_msgs::ExePathResult::SUCCESS;
 }
 

@@ -80,6 +80,10 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+// controller period
+#include <std_msgs/Float64.h>
+#include <time.h>
+
 
 namespace teb_local_planner
 {
@@ -445,6 +449,9 @@ private:
     
   // flags
   bool initialized_; //!< Keeps track about the correct initialization of this class
+
+  // for controller period monitor
+  ros::Publisher controller_period_pub_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
